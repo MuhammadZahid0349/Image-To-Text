@@ -68,6 +68,10 @@ class _ImageToTextState extends State<ImageToText> {
         outputText += block.text;
       });
     }
+    outputText = outputText.trim();
+    setState(() {
+      outputText = "<p>$outputText</p>"; // Wrap the text in <p> tags
+    });
   }
 
   @override
