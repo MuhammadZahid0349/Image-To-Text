@@ -1,8 +1,12 @@
+import 'dart:developer';
 import 'dart:io';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_speed_dial/flutter_speed_dial.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:get/get.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:image_picker/image_picker.dart';
@@ -54,36 +58,107 @@ class _ImageToTextState extends State<ImageToText> {
     processImageForConversion(inputImage);
   }
 
+//   processImageForConversion(inputImage) async {
+//   setState(() {
+//     outputText = "";
+//   });
+
+//   final textRecognizer = TextRecognizer();
+//   final RecognizedText recognizedText =
+//       await textRecognizer.processImage(inputImage);
+
+//   for (TextBlock block in recognizedText.blocks) {
+//     final List<Point<int>> cornerPoints = block.cornerPoints;
+//     final String blockText = block.text;
+//     final List<String> languages = block.recognizedLanguages;
+
+//     for (TextLine line in block.lines) {
+//       // Same getters as TextBlock
+//       String lineText = line.text;
+
+//       // Check for whitespace characters before and after the line
+//       String prefix = blockText.substring(0, line.rect.left.toInt() - block.rect.left.toInt());
+//       String suffix = blockText.substring(line.rect.right.toInt() - block.rect.left.toInt());
+
+//       // Append the prefix, line text, and suffix to the output text
+//       setState(() {
+//         outputText += prefix + lineText + suffix;
+//       });
+//     }
+//   }
+
+//   print(outputText);
+// }
+
   processImageForConversion(inputImage) async {
     setState(() {
       outputText = "";
     });
 
-    final textRecognizer = TextRecognizer(script: TextRecognitionScript.latin);
+    final textRecognizer = TextRecognizer();
     final RecognizedText recognizedText =
         await textRecognizer.processImage(inputImage);
-
     for (TextBlock block in recognizedText.blocks) {
       setState(() {
-        outputText += block.text;
+        // print(block.text);
+        outputText += "${block.text}\n";
       });
     }
-    outputText = outputText.trim();
-    setState(() {
-      outputText = "<p>$outputText</p>"; // Wrap the text in <p> tags
-    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text("Image to Text")),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          pickImage(ImageSource.gallery, pickedImage);
-        },
-        child: const Icon(Icons.image),
+      floatingActionButton: SpeedDial(
+        icon: Icons.add,
+        activeIcon: Icons.close,
+        foregroundColor: Colors.white,
+        activeBackgroundColor: Colors.deepPurpleAccent,
+        activeForegroundColor: Colors.white,
+        spacing: 15,
+        spaceBetweenChildren: 8,
+        visible: true,
+        closeManually: false,
+        curve: Curves.bounceIn,
+        overlayColor: Colors.black,
+        overlayOpacity: 0.5,
+        onOpen: () => print('OPENING DIAL'), // action when menu opens
+        onClose: () => print('DIAL CLOSED'), //action when menu closes
+
+        elevation: 8.0, //shadow elevation of button
+        shape: const CircleBorder(),
+        children: [
+          SpeedDialChild(
+            child: const Icon(FontAwesomeIcons.image),
+            backgroundColor: Colors.blue,
+            foregroundColor: Colors.white,
+
+            onTap: () {
+              pickImage(ImageSource.gallery, pickedImage);
+            },
+            // onLongPress: () => print('FIRST CHILD LONG PRESS'),
+          ),
+          SpeedDialChild(
+            child: const Icon(FontAwesomeIcons.camera),
+            backgroundColor: Colors.blue,
+            foregroundColor: Colors.white,
+            onTap: () => print('SECOND CHILD'),
+          ),
+          SpeedDialChild(
+            child: const Icon(FontAwesomeIcons.qrcode),
+            foregroundColor: Colors.white,
+            backgroundColor: Colors.blue,
+            onTap: () => print('THIRD CHILD'),
+          ),
+        ],
       ),
+      // floatingActionButton: FloatingActionButton(
+      //   onPressed: () {
+      //     pickImage(ImageSource.gallery, pickedImage);
+      //   },
+      //   child: const Icon(Icons.image),
+      // ),
       body: SingleChildScrollView(
         child: Padding(
           padding: EdgeInsets.symmetric(horizontal: 20.h),
@@ -104,6 +179,7 @@ class _ImageToTextState extends State<ImageToText> {
               softWrap: true,
               style: TextStyle(fontFamily: 'Times New Roman', fontSize: 16.sp),
             ),
+            80.h.heightBox,
           ]),
         ),
       ),
