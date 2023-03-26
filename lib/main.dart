@@ -1,16 +1,12 @@
-import 'dart:developer';
 import 'dart:io';
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:get/get.dart';
-import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
+import 'package:google_ml_kit/google_ml_kit.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:image_to_text/utils/utils.dart';
 import 'package:velocity_x/velocity_x.dart';
 
 void main() {
@@ -45,65 +41,37 @@ class ImageToText extends StatefulWidget {
 }
 
 class _ImageToTextState extends State<ImageToText> {
-  File? _pickedImage;
+  // File? _pickedImage;
   String outputText = "";
+  XFile? imageFile;
 
-  pickedImage(File file) {
-    setState(() {
-      _pickedImage = file;
-    });
-
-    InputImage inputImage = InputImage.fromFile(file);
-    //code to recognize image
-    processImageForConversion(inputImage);
+  void getImage(ImageSource source) async {
+    try {
+      final pickedImage = await ImagePicker().pickImage(source: source);
+      if (pickedImage != null) {
+        imageFile = pickedImage;
+        setState(() {});
+        getRecognisedText(pickedImage);
+      }
+    } catch (e) {
+      imageFile = null;
+      outputText = "Error occured while scanning";
+      setState(() {});
+    }
   }
 
-//   processImageForConversion(inputImage) async {
-//   setState(() {
-//     outputText = "";
-//   });
-
-//   final textRecognizer = TextRecognizer();
-//   final RecognizedText recognizedText =
-//       await textRecognizer.processImage(inputImage);
-
-//   for (TextBlock block in recognizedText.blocks) {
-//     final List<Point<int>> cornerPoints = block.cornerPoints;
-//     final String blockText = block.text;
-//     final List<String> languages = block.recognizedLanguages;
-
-//     for (TextLine line in block.lines) {
-//       // Same getters as TextBlock
-//       String lineText = line.text;
-
-//       // Check for whitespace characters before and after the line
-//       String prefix = blockText.substring(0, line.rect.left.toInt() - block.rect.left.toInt());
-//       String suffix = blockText.substring(line.rect.right.toInt() - block.rect.left.toInt());
-
-//       // Append the prefix, line text, and suffix to the output text
-//       setState(() {
-//         outputText += prefix + lineText + suffix;
-//       });
-//     }
-//   }
-
-//   print(outputText);
-// }
-
-  processImageForConversion(inputImage) async {
-    setState(() {
-      outputText = "";
-    });
-
-    final textRecognizer = TextRecognizer();
-    final RecognizedText recognizedText =
-        await textRecognizer.processImage(inputImage);
-    for (TextBlock block in recognizedText.blocks) {
-      setState(() {
-        // print(block.text);
-        outputText += "${block.text}\n";
-      });
+  void getRecognisedText(XFile image) async {
+    final inputImage = InputImage.fromFilePath(image.path);
+    final textDetector = GoogleMlKit.vision.textDetector();
+    RecognisedText recognisedText = await textDetector.processImage(inputImage);
+    await textDetector.close();
+    outputText = "";
+    for (TextBlock block in recognisedText.blocks) {
+      for (TextLine line in block.lines) {
+        outputText = "$outputText${line.text}\n";
+      }
     }
+    setState(() {});
   }
 
   @override
@@ -117,7 +85,7 @@ class _ImageToTextState extends State<ImageToText> {
         activeBackgroundColor: Colors.deepPurpleAccent,
         activeForegroundColor: Colors.white,
         spacing: 15,
-        spaceBetweenChildren: 8,
+        spaceBetweenChildren: 10,
         visible: true,
         closeManually: false,
         curve: Curves.bounceIn,
@@ -133,42 +101,30 @@ class _ImageToTextState extends State<ImageToText> {
             child: const Icon(FontAwesomeIcons.image),
             backgroundColor: Colors.blue,
             foregroundColor: Colors.white,
-
             onTap: () {
-              pickImage(ImageSource.gallery, pickedImage);
+              getImage(ImageSource.gallery);
             },
-            // onLongPress: () => print('FIRST CHILD LONG PRESS'),
           ),
           SpeedDialChild(
             child: const Icon(FontAwesomeIcons.camera),
             backgroundColor: Colors.blue,
             foregroundColor: Colors.white,
-            onTap: () => print('SECOND CHILD'),
-          ),
-          SpeedDialChild(
-            child: const Icon(FontAwesomeIcons.qrcode),
-            foregroundColor: Colors.white,
-            backgroundColor: Colors.blue,
-            onTap: () => print('THIRD CHILD'),
+            onTap: () {
+              getImage(ImageSource.camera);
+            },
           ),
         ],
       ),
-      // floatingActionButton: FloatingActionButton(
-      //   onPressed: () {
-      //     pickImage(ImageSource.gallery, pickedImage);
-      //   },
-      //   child: const Icon(Icons.image),
-      // ),
       body: SingleChildScrollView(
         child: Padding(
           padding: EdgeInsets.symmetric(horizontal: 20.h),
           child: Column(children: [
             8.h.heightBox,
-            if (_pickedImage == null)
+            if (imageFile == null)
               Container()
             else
               Image.file(
-                _pickedImage!,
+                File(imageFile!.path),
                 fit: BoxFit.fill,
               ),
             8.h.heightBox,
